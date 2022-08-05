@@ -1,0 +1,617 @@
+---
+title: "Week 7 Assignment"
+author: "Naim Sejtanic"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+library(dplyr)
+library(ggplot2)
+library(tseries)
+library(urca)
+library(vars)
+```
+
+# Analyzing commodity time series data using the commodity.csv
+
+```{r}
+#Import Commodity Data and add natural logarithm of each commodity
+commodity_data <- read.csv("commodity.csv", header =TRUE)
+commodity_data$log_copper <- log(commodity_data$copper)
+commodity_data$log_cotton <- log(commodity_data$cotton)
+commodity_data$log_maize <- log(commodity_data$maize)
+commodity_data$log_sugar <- log(commodity_data$sugar)
+commodity_data$log_wheat <- log(commodity_data$wheat)
+commodity_data$log_wool <- log(commodity_data$wool)
+commodity_data$log_zinc <- log(commodity_data$zinc)
+log_data <- commodity_data[,9:15]
+#Calculate first difference of commodity prices
+diff_copper <- diff(commodity_data$copper)
+diff_cotton <- diff(commodity_data$cotton)
+diff_maize <- diff(commodity_data$maize)
+diff_sugar <- diff(commodity_data$sugar)
+diff_wheat <- diff(commodity_data$wheat)
+diff_wool <- diff(commodity_data$wool)
+diff_zinc <- diff(commodity_data$zinc)
+diff_data <- data.frame(diff_copper,diff_cotton,diff_maize,diff_sugar,diff_wheat,diff_wool,diff_zinc)
+#Calculate log returns of commodity prices
+copper_return <- diff(log(commodity_data$copper))
+cotton_return <- diff(log(commodity_data$cotton))
+maize_return <- diff(log(commodity_data$maize))
+sugar_return <- diff(log(commodity_data$sugar))
+wheat_return <- diff(log(commodity_data$wheat))
+wool_return <- diff(log(commodity_data$wool))
+zinc_return <- diff(log(commodity_data$zinc))
+return_data <- data.frame(copper_return,cotton_return,maize_return,sugar_return,wheat_return,wool_return,zinc_return)
+```
+
+## The plot for the log commodity prices seems to be non-stationary for all commodities, as there is an observable slight upward trend for each commodity over time.
+
+
+```{r, echo=FALSE}
+#Plot log commodity prices
+log_plot <- ggplot(commodity_data,aes(x=dateid01)) + geom_line(aes(y=log_copper, color="log copper", group=1)) + geom_line(aes(y=log_cotton, color="log cotton", group=1)) + geom_line(aes(y=log_maize, color="log maize", group=1)) + geom_line(aes(y=log_sugar, color="log sugar", group=1)) + geom_line(aes(y=log_wheat, color="log wheat", group=1)) + geom_line(aes(y=log_wool, color="log wool", group=1)) + geom_line(aes(y=log_zinc, color="log zinc", group=1)) + scale_color_manual(values = c("red", "blue", "green", "yellow", "violet", "orange", "black")) + labs(color="Colors") + xlab('Time') + ylab('Price')
+log_plot
+```
+
+## By glancing at the graphs, most of the first differences of each commodity seem to possibly show increasing variance over time, especially after the first 200 observations, which would seem to indicate non-stationairity. However, sugar and copper seem to be less obvious and could be stationary.
+
+```{r, echo=FALSE}
+#Plot first difference of commodity prices
+diff_plot1 <- ggplot(diff_data,aes(x=1:nrow(diff_data))) + geom_line(aes(y=diff_copper, color="diff copper", group=1)) + scale_color_manual(values = c("red", "blue", "green", "yellow", "violet", "orange", "black")) + geom_line(aes(y=diff_zinc, color="diff zinc", group=1)) + labs(color="Colors") + xlab('Time') + ylab('First Difference')
+diff_plot1
+
+diff_plot2 <- ggplot(diff_data,aes(x=1:nrow(diff_data))) + geom_line(aes(y=diff_cotton, color="diff cotton", group=1)) + geom_line(aes(y=diff_maize, color="diff maize", group=1)) + geom_line(aes(y=diff_sugar, color="diff sugar", group=1)) + scale_color_manual(values = c("red", "blue", "green", "yellow", "violet", "orange", "black")) + labs(color="Colors") + xlab('Time') + ylab('First Difference')
+diff_plot2
+
+diff_plot3 <- ggplot(diff_data,aes(x=1:nrow(diff_data))) + geom_line(aes(y=diff_wheat, color="diff wheat", group=1)) + geom_line(aes(y=diff_wool, color="diff wool", group=1)) + scale_color_manual(values = c("red", "blue", "green", "yellow", "violet", "orange", "black")) + labs(color="Colors") + xlab('Time') + ylab('First Difference')
+diff_plot3
+```
+
+## A quick glance at the graphs of the log returns of each commodity price doesn't seem to indicate any trends or increasing variances, which seems to indicate to all of them being stationary. 
+
+```{r, echo=FALSE}
+#Plot log returns of commodity prices
+return_plot <- ggplot(return_data,aes(x=1:nrow(diff_data))) + geom_line(aes(y=copper_return, color="copper return", group=1)) + geom_line(aes(y=cotton_return, color="cotton return", group=1)) + geom_line(aes(y=maize_return, color="maize return", group=1)) + geom_line(aes(y=sugar_return, color="sugar return", group=1)) + geom_line(aes(y=wheat_return, color="wheat return", group=1)) + geom_line(aes(y=wool_return, color="wool return", group=1)) + geom_line(aes(y=zinc_return, color="zinc return", group=1)) + scale_color_manual(values = c("red", "blue", "green", "yellow", "violet", "orange", "black")) + labs(color="Colors") + xlab('Time') + ylab('Log Return')
+return_plot
+```
+
+
+## We can see from observing each of the commodity's  DF test result's t-values, that none of them are negative enough to reject, even the 10 percent rejection level, which suggests that we can not reject the null-hypothesis of non-stationarity.
+```{r}
+DFtest_copper <- ur.df(commodity_data$log_copper, type = "drift", lags=0)
+print(summary(DFtest_copper))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_cotton <- ur.df(commodity_data$log_cotton, type = "drift", lags=0)
+print(summary(DFtest_cotton))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_maize <- ur.df(commodity_data$log_maize, type = "drift", lags=0)
+print(summary(DFtest_maize))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_sugar <- ur.df(commodity_data$log_sugar, type = "drift", lags=0)
+print(summary(DFtest_sugar))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_wheat <- ur.df(commodity_data$log_wheat, type = "drift", lags=0)
+print(summary(DFtest_wheat))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_wool <- ur.df(commodity_data$log_wool, type = "drift", lags=0)
+print(summary(DFtest_wool))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_zinc <- ur.df(commodity_data$log_zinc, type = "drift", lags=0)
+print(summary(DFtest_zinc))
+```
+
+## Adding 2 lags we are able to see slightly more evidence towards rejection, as the t-values become more negative, however, we are still unable to reject the null of non-stationarity at any of the significance levels as they are still not negative enough.
+
+```{r}
+DFtest_copper2 <- ur.df(commodity_data$log_copper, type = "drift", lags=2)
+print(summary(DFtest_copper2))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_cotton2 <- ur.df(commodity_data$log_cotton, type = "drift", lags=2)
+print(summary(DFtest_cotton2))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_maize2 <- ur.df(commodity_data$log_maize, type = "drift", lags=2)
+print(summary(DFtest_maize2))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_sugar2 <- ur.df(commodity_data$log_sugar, type = "drift", lags=2)
+print(summary(DFtest_sugar2))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_wheat2 <- ur.df(commodity_data$log_wheat, type = "drift", lags=2)
+print(summary(DFtest_wheat2))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_wool2 <- ur.df(commodity_data$log_wool, type = "drift", lags=2)
+print(summary(DFtest_wool))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_zinc2 <- ur.df(commodity_data$log_zinc, type = "drift", lags=2)
+print(summary(DFtest_zinc2))
+```
+
+## Using the PP test we are still unable to reject at any of the significance levels for any of the commodity log prices.
+
+```{r}
+pp_copper <- ur.pp(commodity_data$log_copper, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_copper))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+pp_cotton <- ur.pp(commodity_data$log_cotton, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_cotton))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+pp_maize <- ur.pp(commodity_data$log_maize, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_maize))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+pp_sugar <- ur.pp(commodity_data$log_sugar, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_sugar))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+pp_wheat <- ur.pp(commodity_data$log_wheat, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_wheat))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+pp_wool <- ur.pp(commodity_data$log_wool, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_wool))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+pp_zinc <- ur.pp(commodity_data$log_zinc, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_zinc))
+```
+
+
+### We can now try DF and PP tests for the first differences
+
+## As you can see below, the DF tests with and without lags all produce very negative t-values, so we are able to reject the null hypothesis and say the first differences data observed is stationary. The same can be said for each PP test, as each commodity price difference's test statistic is very negative and well within the rejection region, even the 1 percent level.
+
+#### DF tests with 0 lags
+```{r}
+DFtest_copperdiff <- ur.df(diff_data$diff_copper, type = "drift", lags=0)
+print(summary(DFtest_copperdiff))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_cottondiff <- ur.df(diff_data$diff_cotton, type = "drift", lags=0)
+print(summary(DFtest_cottondiff))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_maizediff <- ur.df(diff_data$diff_maize, type = "drift", lags=0)
+print(summary(DFtest_maizediff))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_sugardiff <- ur.df(diff_data$diff_sugar, type = "drift", lags=0)
+print(summary(DFtest_sugardiff))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_wheatdiff <- ur.df(diff_data$diff_wheat, type = "drift", lags=0)
+print(summary(DFtest_wheatdiff))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_wooldiff <- ur.df(diff_data$diff_wool, type = "drift", lags=0)
+print(summary(DFtest_wooldiff))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_zincdiff <- ur.df(diff_data$diff_zinc, type = "drift", lags=0)
+print(summary(DFtest_zincdiff))
+```
+
+#### DF tests with 2 lags
+```{r}
+DFtest_copperdiff2 <- ur.df(diff_data$diff_copper, type = "drift", lags=2)
+print(summary(DFtest_copperdiff2))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_cottondiff2 <- ur.df(diff_data$diff_cotton, type = "drift", lags=2)
+print(summary(DFtest_cottondiff2))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_maizediff2 <- ur.df(diff_data$diff_maize, type = "drift", lags=2)
+print(summary(DFtest_maizediff2))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_sugardiff2 <- ur.df(diff_data$diff_sugar, type = "drift", lags=2)
+print(summary(DFtest_sugardiff2))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_wheatdiff2 <- ur.df(diff_data$diff_wheat, type = "drift", lags=2)
+print(summary(DFtest_wheatdiff2))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_wooldiff2 <- ur.df(diff_data$diff_wool, type = "drift", lags=2)
+print(summary(DFtest_wooldiff2))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_zincdiff2 <- ur.df(diff_data$diff_zinc, type = "drift", lags=2)
+print(summary(DFtest_zincdiff2))
+```
+
+#### PP tests
+```{r}
+pp_copperdiff <- ur.pp(diff_data$diff_copper, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_copperdiff))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+pp_cottondiff <- ur.pp(diff_data$diff_cotton, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_cottondiff))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+pp_maizediff <- ur.pp(diff_data$diff_maize, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_maizediff))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+pp_sugardiff <- ur.pp(diff_data$diff_sugar, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_sugardiff))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+pp_wheatdiff <- ur.pp(diff_data$diff_wheat, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_wheatdiff))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+pp_wooldiff <- ur.pp(diff_data$diff_wool, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_wooldiff))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+pp_zincdiff <- ur.pp(diff_data$diff_zinc, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_zincdiff))
+```
+
+### DF and PP tests for log returns
+
+## Observing the DF test results for each commodity's log returns, we are able reject the null of non-stationarity as both 0 lag and 2 lags t-values result in very negative numbers for every log return, indicating the data is stationary. The PP test for the log returns returns the same conclusion.
+
+#### DF tests with no lags
+```{r}
+DFtest_copperlog <- ur.df(return_data$copper_return, type = "drift", lags=0)
+print(summary(DFtest_copperlog))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_cottonlog <- ur.df(return_data$cotton_return, type = "drift", lags=0)
+print(summary(DFtest_cottonlog))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_maizelog <- ur.df(return_data$maize_return, type = "drift", lags=0)
+print(summary(DFtest_maizelog))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_sugarlog <- ur.df(return_data$sugar_return, type = "drift", lags=0)
+print(summary(DFtest_sugarlog))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_wheatlog <- ur.df(return_data$wheat_return, type = "drift", lags=0)
+print(summary(DFtest_wheatlog))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_woollog <- ur.df(return_data$wool_return, type = "drift", lags=0)
+print(summary(DFtest_woollog))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_zinclog <- ur.df(return_data$zinc_return, type = "drift", lags=0)
+print(summary(DFtest_zinclog))
+```
+
+#### DF tests with 2 lags
+```{r}
+DFtest_copperlog2 <- ur.df(return_data$copper_return, type = "drift", lags=2)
+print(summary(DFtest_copperlog2))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_cottonlog2 <- ur.df(return_data$cotton_return, type = "drift", lags=2)
+print(summary(DFtest_cottonlog2))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_maizelog2 <- ur.df(return_data$maize_return, type = "drift", lags=2)
+print(summary(DFtest_maizelog2))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_sugarlog2 <- ur.df(return_data$sugar_return, type = "drift", lags=2)
+print(summary(DFtest_sugarlog2))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_wheatlog2 <- ur.df(return_data$wheat_return, type = "drift", lags=2)
+print(summary(DFtest_wheatlog2))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_woollog2 <- ur.df(return_data$wool_return, type = "drift", lags=2)
+print(summary(DFtest_woollog2))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_zinclog2 <- ur.df(return_data$zinc_return, type = "drift", lags=2)
+print(summary(DFtest_zinclog2))
+```
+
+#### PP tests
+```{r}
+pp_copperlog <- ur.pp(return_data$copper_return, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_copperlog))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+pp_cottonlog <- ur.pp(return_data$cotton_return, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_cottonlog))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+pp_maizelog <- ur.pp(return_data$maize_return, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_maizelog))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+pp_sugarlog <- ur.pp(return_data$sugar_return, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_sugarlog))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+pp_wheatlog <- ur.pp(return_data$wheat_return, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_wheatlog))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+pp_woollog <- ur.pp(return_data$wool_return, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_woollog))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+pp_zinclog <- ur.pp(return_data$zinc_return, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_zinclog))
+```
+
+
+## In this case below, the first difference (where d=1) is enough to achieve stationarity for the log of commodity price data, as both the DF tests and PP tests produce very negative t-values for all commodities, so we are able to reject the null hypothesis of non-stationarity.
+
+```{r}
+#Find first difference of log prices for each commodity
+logdiff_copper <- diff(log_data$log_copper)
+logdiff_cotton <- diff(log_data$log_cotton)
+logdiff_maize <- diff(log_data$log_maize)
+logdiff_sugar <- diff(log_data$log_sugar)
+logdiff_wheat <- diff(log_data$log_wheat)
+logdiff_wool <- diff(log_data$log_wool)
+logdiff_zinc <- diff(log_data$log_zinc)
+logdiff_data <- data.frame(logdiff_copper,logdiff_cotton,logdiff_maize,logdiff_sugar,logdiff_wheat,logdiff_wool,logdiff_zinc)
+```
+
+#### DF tests with no lags
+```{r}
+DFtest_copperlogdiff <- ur.df(logdiff_data$logdiff_copper, type = "drift", lags=0)
+print(summary(DFtest_copperlogdiff))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_cottonlogdiff <- ur.df(logdiff_data$logdiff_cotton, type = "drift", lags=0)
+print(summary(DFtest_cottonlogdiff))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_maizelogdiff <- ur.df(logdiff_data$logdiff_maize, type = "drift", lags=0)
+print(summary(DFtest_maizelogdiff))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_sugarlogdiff <- ur.df(logdiff_data$logdiff_sugar, type = "drift", lags=0)
+print(summary(DFtest_sugarlogdiff))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_wheatlogdiff <- ur.df(logdiff_data$logdiff_wheat, type = "drift", lags=0)
+print(summary(DFtest_wheatlogdiff))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_woollogdiff <- ur.df(logdiff_data$logdiff_wool, type = "drift", lags=0)
+print(summary(DFtest_woollogdiff))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_zinclogdiff <- ur.df(logdiff_data$logdiff_zinc, type = "drift", lags=0)
+print(summary(DFtest_zinclogdiff))
+```
+
+#### DF tests with 2 lags
+```{r}
+DFtest_copperlogdiff2 <- ur.df(logdiff_data$logdiff_copper, type = "drift", lags=2)
+print(summary(DFtest_copperlogdiff2))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_cottonlogdiff2 <- ur.df(logdiff_data$logdiff_cotton, type = "drift", lags=2)
+print(summary(DFtest_cottonlogdiff2))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_maizelogdiff2 <- ur.df(logdiff_data$logdiff_maize, type = "drift", lags=2)
+print(summary(DFtest_maizelogdiff2))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_sugarlogdiff2 <- ur.df(logdiff_data$logdiff_sugar, type = "drift", lags=2)
+print(summary(DFtest_sugarlogdiff2))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_wheatlogdiff2 <- ur.df(logdiff_data$logdiff_wheat, type = "drift", lags=2)
+print(summary(DFtest_wheatlogdiff2))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_woollogdiff2 <- ur.df(logdiff_data$logdiff_wool, type = "drift", lags=2)
+print(summary(DFtest_woollogdiff2))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+DFtest_zinclogdiff2 <- ur.df(logdiff_data$logdiff_zinc, type = "drift", lags=2)
+print(summary(DFtest_zinclogdiff2))
+```
+
+#### PP tests
+```{r}
+pp_copperlogdiff <- ur.pp(logdiff_data$logdiff_copper, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_copperlogdiff))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+pp_cottonlogdiff <- ur.pp(logdiff_data$logdiff_cotton, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_cottonlogdiff))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+pp_maizelogdiff <- ur.pp(logdiff_data$logdiff_maize, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_maizelogdiff))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+pp_sugarlogdiff <- ur.pp(logdiff_data$logdiff_sugar, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_sugarlogdiff))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+pp_wheatlogdiff <- ur.pp(logdiff_data$logdiff_wheat, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_wheatlogdiff))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+pp_woollogdiff <- ur.pp(logdiff_data$logdiff_wool, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_woollogdiff))
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+pp_zinclogdiff <- ur.pp(logdiff_data$logdiff_zinc, type = "Z-tau", model="constant", lags="short")
+print(summary(pp_zinclogdiff))
+```
+
+
+# Question 4
+## Analyzing inflation and interest rate data from the fisher.csv and testing for the Fisher Effect (the relationship between inflation and interest rates)
+
+```{r warning=FALSE}
+#Import data and find annualized inflation rate for each quarter
+fisher_data <- read.csv("fisher.csv", header =TRUE)
+ann_inf_rate <- (diff(fisher_data$p)/fisher_data$p)*4*100
+fisher_data$ann_inf_rate <- ann_inf_rate
+```
+
+
+```{r}
+#Plot nominal interest rates and inflation rates
+fisher_plot <- ggplot(fisher_data,aes(x=1:nrow(fisher_data))) + geom_line(aes(y=r, color="nominal interest rate", group=1)) + geom_line(aes(y=ann_inf_rate, color="inflation rate", group=1)) + scale_color_manual(values = c("red", "blue", "green", "yellow", "violet", "orange", "black")) + labs(color="Colors") + xlab('Time') + ylab('Rate')
+fisher_plot
+```
+
+
+## Applying a DF test on both the nominal rates and annualized inflation rates, we are only able to reject the null hypothesis of non-stationarity in the case of the inflation rate, however only without the time trend, and only at the 10% level. Because this suggests weak evidence, it is more likely that we can not claim that either the inflation rate or the nominal interest rate is stationary, which suggests it to be nonstationary data which we will have to difference to make stationary.
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+#Find AIC lag length
+VARselect(fisher_data$r)
+VARselect(fisher_data$ann_inf_rate)
+#DF tests on nominal rate using AIC lag length
+DFtest_nominalrate <- ur.df(fisher_data$p, type = "drift", lags=8)
+print(summary(DFtest_nominalrate))
+DFtest_nominalrate2 <- ur.df(fisher_data$p, type = "trend", lags=8)
+print(summary(DFtest_nominalrate2))
+#DF tests on inflation rate using AIC lag length
+DFtest_inflationrate <- ur.df(fisher_data$ann_inf_rate, type = "drift", lags=7)
+print(summary(DFtest_inflationrate))
+DFtest_inflationrate2 <- ur.df(fisher_data$ann_inf_rate, type = "trend", lags=7)
+print(summary(DFtest_inflationrate2))
+```
+
+## After finding the first difference for the nominal rates and the inflation rate, we again run the DF tests with and without time trends, and are able to easily reject at every rejection level as each of the t-values are very negative. This suggests that the level of integration for each series is 1, which suggests that the nominal rate and the inflation rate can be cointegrated.
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+#Difference the data and find lag length
+r_diff <- diff(fisher_data$r)
+ann_inf_rate_diff <- diff(fisher_data$ann_inf_rate)
+VARselect(r_diff)
+VARselect(ann_inf_rate_diff)
+
+#DF tests on first difference nominal rate using AIC lag length
+DFtest_nominalrate_diff <- ur.df(r_diff, type = "drift", lags=8)
+print(summary(DFtest_nominalrate_diff))
+DFtest_nominalrate_diff2 <- ur.df(r_diff, type = "trend", lags=8)
+print(summary(DFtest_nominalrate_diff2))
+
+#DF tests on first difference inflation rate using AIC lag length
+DFtest_inflationrate_diff <- ur.df(ann_inf_rate_diff, type = "drift", lags=3)
+print(summary(DFtest_inflationrate_diff))
+DFtest_inflationrate_diff2 <- ur.df(ann_inf_rate_diff, type = "trend", lags=3)
+print(summary(DFtest_inflationrate_diff2))
+
+```
+
+
+## The Fisher Hypothesis suggests that real interest rates should be stationary as nominal interest rates reflect the long run movement in the inflation rate. Using a DF test on the real interest rate since September 1954, we can see that the Fisher Hypothesis holds at the 10 percent level, given that the test statistic is lower, so we are able to reject the null hypothesis of non-stationarity. However, we are not able to reject the null hypothesis at the 5 or 1 percent levels, which suggests there is weak evidence that the Fisher Hypothesis is true.
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE, results="hide"}
+#Finding the real interest rate
+fisher_data$real_rate <- fisher_data$r-fisher_data$ann_inf_rate
+#Finding the optimal lag length
+VARselect(fisher_data$real_rate)
+```
+
+```{r}
+#DF test on real interest rate using AIC lag length
+DFtest_realrate <- ur.df(fisher_data$real_rate, type = "drift", lags=4)
+print(summary(DFtest_realrate))
+```
